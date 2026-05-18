@@ -1,0 +1,23 @@
+# Email
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+google-api-python-client
+msal
+
+# AI
+anthropic
+
+# Django
+django
+djangorestframework
+django-cors-headers
+psycopg2-binary
+
+# Database
+psycopg2-binary
+
+# Utils
+python-dotenv
+celery
+redis
