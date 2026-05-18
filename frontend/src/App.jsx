@@ -1,78 +1,155 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { fetchStats, fetchResponseTimes, fetchEmails, fetchEmail, reclassifyEmail, exportUrl } from './api'
 import MetricCards from './components/MetricCards'
-import CategoryChart from './components/CategoryChart'
+import BarList from './components/BarList'
 import EmailTable from './components/EmailTable'
 import EmailDetail from './components/EmailDetail'
 
-const CATEGORIES = [
-  'IT Technical', 'Marketing', 'Tax', 'Others', 'No Action Required', 'Unclassified',
+const CATEGORIES = ['IT Technical', 'Marketing', 'Tax', 'Others', 'No Action Required', 'Unclassified']
+
+const CAT_COLORS = {
+  'IT Technical':       '#3b82f6',
+  'Marketing':          '#ec4899',
+  'Tax':                '#f59e0b',
+  'Others':             '#10b981',
+  'No Action Required': '#71717a',
+  'Unclassified':       '#ef4444',
+}
+
+const DATE_OPTIONS = [
+  { label: 'Last 7 days',  value: '7d' },
+  { label: 'Last 30 days', value: '30d' },
+  { label: 'Last 90 days', value: '90d' },
+  { label: 'All time',     value: 'all' },
 ]
 
+function getDateRange(preset) {
+  if (preset === 'all') return {}
+  const days = { '7d': 7, '30d': 30, '90d': 90 }[preset]
+  const from = new Date()
+  from.setDate(from.getDate() - days)
+  return {
+    dateFrom: from.toISOString().split('T')[0],
+    dateTo:   new Date().toISOString().split('T')[0],
+  }
+}
+
+function FilterSelect({ value, onChange, options }) {
+  return (
+    <div className="relative">
+      <select
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        className="appearance-none bg-zinc-800 text-white border border-zinc-700 rounded-xl px-4 py-2.5 pr-9 text-sm cursor-pointer focus:outline-none hover:border-zinc-500 focus:border-zinc-500 transition-colors"
+      >
+        {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+      <svg
+        className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none"
+        fill="none" viewBox="0 0 24 24" stroke="currentColor"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+      </svg>
+    </div>
+  )
+}
+
 export default function App() {
-  const [stats, setStats] = useState(null)
+  const [stats, setStats]               = useState(null)
   const [responseTimes, setResponseTimes] = useState([])
-  const [emails, setEmails] = useState({ results: [], count: 0 })
+  const [emails, setEmails]             = useState({ results: [], count: 0 })
   const [selectedEmail, setSelectedEmail] = useState(null)
-  const [filters, setFilters] = useState({ category: '', dateFrom: '', dateTo: '', requiresReview: null })
-  const [page, setPage] = useState(1)
-  const [loading, setLoading] = useState(true)
+  const [category, setCategory]         = useState('')
+  const [datePreset, setDatePreset]     = useState('all')
+  const [page, setPage]                 = useState(1)
+  const [loading, setLoading]           = useState(true)
+
+  const dateRange = useMemo(() => getDateRange(datePreset), [datePreset])
 
   const loadStats = useCallback(async () => {
     try {
       const [s, t] = await Promise.all([fetchStats(), fetchResponseTimes()])
       setStats(s)
       setResponseTimes(t)
-    } catch (e) {
-      console.error(e)
-    }
+    } catch (e) { console.error(e) }
   }, [])
 
   const loadEmails = useCallback(async () => {
     setLoading(true)
     try {
-      const data = await fetchEmails({ ...filters, page })
-      setEmails(data)
-    } catch (e) {
-      console.error(e)
-    } finally {
-      setLoading(false)
-    }
-  }, [filters, page])
+      setEmails(await fetchEmails({ category, ...dateRange, page }))
+    } catch (e) { console.error(e) }
+    finally { setLoading(false) }
+  }, [category, dateRange, page])
 
-  useEffect(() => { loadStats() }, [loadStats])
+  useEffect(() => { loadStats() },  [loadStats])
   useEffect(() => { loadEmails() }, [loadEmails])
 
   const handleSelectEmail = async (id) => {
-    try {
-      setSelectedEmail(await fetchEmail(id))
-    } catch (e) {
-      console.error(e)
-    }
+    try { setSelectedEmail(await fetchEmail(id)) }
+    catch (e) { console.error(e) }
   }
 
-  const handleReclassify = async (id, category) => {
-    await reclassifyEmail(id, category)
+  const handleReclassify = async (id, cat) => {
+    await reclassifyEmail(id, cat)
     setSelectedEmail(null)
     await Promise.all([loadStats(), loadEmails()])
   }
 
   const overallAvg = responseTimes.length
-    ? (responseTimes.reduce((s, r) => s + r.avg_minutes, 0) / responseTimes.length).toFixed(1)
+    ? responseTimes.reduce((s, r) => s + r.avg_minutes, 0) / responseTimes.length
     : null
 
-  const setFilter = (key, value) => {
-    setFilters(f => ({ ...f, [key]: value }))
-    setPage(1)
-  }
+  const categoryItems = (stats?.by_category ?? []).map(d => ({
+    label:   d.category,
+    value:   d.count,
+    display: `${d.count} (${d.percentage}%)`,
+    color:   CAT_COLORS[d.category] ?? '#71717a',
+  }))
+
+  const responseTimeItems = responseTimes.map(r => ({
+    label:   r.category,
+    value:   r.avg_minutes,
+    display: r.avg_minutes >= 60 ? `${(r.avg_minutes / 60).toFixed(1)}h` : `${Math.round(r.avg_minutes)}m`,
+    color:   CAT_COLORS[r.category] ?? '#71717a',
+  }))
+
+  const catOptions = [
+    { label: 'All categories', value: '' },
+    ...CATEGORIES.map(c => ({ label: c, value: c })),
+  ]
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
-        <h1 className="text-xl font-semibold text-gray-900">Email Triage Dashboard</h1>
+    <div className="min-h-screen bg-zinc-900 text-white">
+      <header className="border-b border-zinc-800 px-8 py-5">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Email triage dashboard</h1>
+            <p className="text-sm text-zinc-500 mt-0.5">Business inbox · live view</p>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <FilterSelect
+              value={datePreset}
+              onChange={v => { setDatePreset(v); setPage(1) }}
+              options={DATE_OPTIONS}
+            />
+            <FilterSelect
+              value={category}
+              onChange={v => { setCategory(v); setPage(1) }}
+              options={catOptions}
+            />
+            <a
+              href={exportUrl({ category, ...dateRange })}
+              download
+              className="flex items-center gap-1.5 bg-zinc-800 text-white border border-zinc-700 rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-zinc-700 hover:border-zinc-500 transition-colors whitespace-nowrap"
+            >
+              Export CSV <span className="text-zinc-400 text-xs">↗</span>
+            </a>
+          </div>
+        </div>
       </header>
 
-      <main className="px-6 py-6 max-w-7xl mx-auto space-y-6">
+      <main className="px-8 py-6 max-w-7xl mx-auto space-y-5">
         {stats && (
           <MetricCards
             totalEmails={stats.total_emails}
@@ -82,68 +159,12 @@ export default function App() {
           />
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 bg-white rounded-lg border border-gray-200 p-4">
-            <p className="text-sm font-medium text-gray-700 mb-3">Category Breakdown</p>
-            {stats && <CategoryChart data={stats.by_category} />}
-          </div>
-
-          <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-4">
-            <p className="text-sm font-medium text-gray-700">Filters</p>
-
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Category</label>
-              <select
-                className="w-full text-sm border border-gray-300 rounded px-2 py-1.5 bg-white"
-                value={filters.category}
-                onChange={e => setFilter('category', e.target.value)}
-              >
-                <option value="">All categories</option>
-                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">From</label>
-              <input
-                type="date"
-                className="w-full text-sm border border-gray-300 rounded px-2 py-1.5"
-                value={filters.dateFrom}
-                onChange={e => setFilter('dateFrom', e.target.value)}
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">To</label>
-              <input
-                type="date"
-                className="w-full text-sm border border-gray-300 rounded px-2 py-1.5"
-                value={filters.dateTo}
-                onChange={e => setFilter('dateTo', e.target.value)}
-              />
-            </div>
-
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                className="rounded"
-                checked={filters.requiresReview === true}
-                onChange={e => setFilter('requiresReview', e.target.checked ? true : null)}
-              />
-              <span className="text-sm text-gray-600">Pending review only</span>
-            </label>
-
-            <a
-              href={exportUrl({ category: filters.category, dateFrom: filters.dateFrom, dateTo: filters.dateTo })}
-              download
-              className="block w-full text-center text-sm bg-gray-900 text-white rounded px-3 py-2 hover:bg-gray-700 transition-colors"
-            >
-              Export CSV
-            </a>
-          </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <BarList title="Category breakdown" items={categoryItems} />
+          <BarList title="Avg response time by category" items={responseTimeItems} />
         </div>
 
-        <div className="bg-white rounded-lg border border-gray-200">
+        <div className="bg-zinc-800 rounded-2xl overflow-hidden border border-zinc-700/60">
           <EmailTable
             emails={emails.results}
             total={emails.count}

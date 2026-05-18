@@ -1,33 +1,47 @@
+function formatTime(minutes) {
+  if (!minutes) return '—'
+  return minutes >= 60 ? `${(minutes / 60).toFixed(1)}h` : `${Math.round(minutes)}m`
+}
+
 export default function MetricCards({ totalEmails, avgResponseTime, accuracyRate, pendingReview }) {
   const cards = [
     {
-      label: 'Total Emails',
+      label: 'Total received',
       value: totalEmails.toLocaleString(),
-      color: 'text-gray-900',
+      sub: null,
+      valueColor: 'text-white',
     },
     {
-      label: 'Avg Response Time',
-      value: avgResponseTime ? `${avgResponseTime}m` : '—',
-      color: 'text-blue-600',
+      label: 'Avg response time',
+      value: formatTime(avgResponseTime),
+      sub: null,
+      valueColor: 'text-white',
     },
     {
-      label: 'Accuracy Rate',
+      label: 'Auto-categorised',
       value: `${accuracyRate}%`,
-      color: 'text-green-600',
+      sub: 'target: >80%',
+      subColor: accuracyRate >= 80 ? 'text-emerald-400' : 'text-red-400',
+      valueColor: 'text-white',
     },
     {
-      label: 'Pending Review',
+      label: 'Pending review',
       value: pendingReview,
-      color: pendingReview > 0 ? 'text-amber-600' : 'text-gray-900',
+      sub: 'unclassified',
+      subColor: 'text-zinc-500',
+      valueColor: pendingReview > 0 ? 'text-amber-400' : 'text-white',
     },
   ]
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       {cards.map(card => (
-        <div key={card.label} className="bg-white rounded-lg border border-gray-200 p-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide">{card.label}</p>
-          <p className={`text-2xl font-semibold mt-1 ${card.color}`}>{card.value}</p>
+        <div key={card.label} className="bg-zinc-800 rounded-2xl p-5 border border-zinc-700/60">
+          <p className="text-sm text-zinc-400">{card.label}</p>
+          <p className={`text-3xl font-bold mt-2 tracking-tight ${card.valueColor}`}>{card.value}</p>
+          {card.sub && (
+            <p className={`text-xs mt-1.5 ${card.subColor ?? 'text-zinc-500'}`}>{card.sub}</p>
+          )}
         </div>
       ))}
     </div>

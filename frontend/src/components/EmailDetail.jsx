@@ -1,12 +1,12 @@
 import { useState } from 'react'
 
 const BADGE = {
-  'IT Technical': 'bg-blue-100 text-blue-700',
-  'Marketing': 'bg-purple-100 text-purple-700',
-  'Tax': 'bg-amber-100 text-amber-700',
-  'Others': 'bg-gray-100 text-gray-700',
-  'No Action Required': 'bg-green-100 text-green-700',
-  'Unclassified': 'bg-red-100 text-red-700',
+  'IT Technical':       'bg-blue-500/15 text-blue-400',
+  'Marketing':          'bg-pink-500/15 text-pink-400',
+  'Tax':                'bg-amber-500/15 text-amber-400',
+  'Others':             'bg-zinc-600/30 text-zinc-300',
+  'No Action Required': 'bg-emerald-500/15 text-emerald-400',
+  'Unclassified':       'bg-red-500/15 text-red-400',
 }
 
 export default function EmailDetail({ email, categories, onReclassify, onClose }) {
@@ -19,84 +19,90 @@ export default function EmailDetail({ email, categories, onReclassify, onClose }
   const handleReclassify = async () => {
     if (!newCategory) return
     setSaving(true)
-    try {
-      await onReclassify(email.id, newCategory)
-    } finally {
-      setSaving(false)
-    }
+    try { await onReclassify(email.id, newCategory) }
+    finally { setSaving(false) }
   }
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/20 z-40" onClick={onClose} />
-      <div className="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-xl z-50 flex flex-col">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 shrink-0">
-          <p className="font-semibold text-sm text-gray-900">Email Detail</p>
+      <div className="fixed inset-0 bg-black/60 z-40 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed right-0 top-0 h-full w-full max-w-md bg-zinc-900 border-l border-zinc-700 z-50 flex flex-col shadow-2xl">
+
+        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 shrink-0">
+          <p className="font-semibold text-white">Email Detail</p>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-lg leading-none"
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
           >
             ✕
           </button>
         </div>
 
-        <div className="overflow-y-auto flex-1 p-5 space-y-5">
+        <div className="overflow-y-auto flex-1 p-6 space-y-5">
           <div>
-            <p className="font-medium text-gray-900 leading-snug">{email.subject}</p>
-            <p className="text-sm text-gray-500 mt-1">{email.sender}</p>
-            <p className="text-xs text-gray-400 mt-1">
-              {new Date(email.received_at).toLocaleString()}
-            </p>
+            <p className="font-semibold text-white text-base leading-snug">{email.subject}</p>
+            <p className="text-sm text-zinc-400 mt-1">{email.sender}</p>
+            <p className="text-xs text-zinc-600 mt-1">{new Date(email.received_at).toLocaleString()}</p>
           </div>
 
           {cls && (
-            <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+            <div className="bg-zinc-800 rounded-xl p-4 space-y-3 border border-zinc-700/60">
               <div className="flex items-center justify-between">
-                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${BADGE[cls.category] ?? 'bg-gray-100 text-gray-700'}`}>
+                <span className={`px-2.5 py-1 rounded-md text-xs font-medium ${BADGE[cls.category] ?? 'bg-zinc-700 text-zinc-300'}`}>
                   {cls.category}
                 </span>
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-zinc-500 tabular-nums">
                   {(cls.confidence * 100).toFixed(0)}% confidence
                 </span>
               </div>
-              <p className="text-xs text-gray-500">
-                Method: <span className="font-medium capitalize">{cls.method}</span>
-              </p>
+              <div className="flex items-center gap-1.5 text-xs">
+                <span className="text-zinc-600">Method:</span>
+                <span className="text-zinc-300 capitalize font-medium">{cls.method}</span>
+              </div>
               {cls.reason && (
-                <p className="text-xs text-gray-600 leading-relaxed">{cls.reason}</p>
+                <p className="text-xs text-zinc-400 leading-relaxed border-t border-zinc-700/60 pt-3">
+                  {cls.reason}
+                </p>
               )}
               {cls.requires_review && (
-                <p className="text-xs text-amber-600 font-medium">Flagged for review</p>
+                <p className="text-xs text-amber-400 font-medium">⚠ Flagged for review</p>
               )}
             </div>
           )}
 
           {routing && (
-            <div className="flex items-center gap-2 text-sm">
-              <span className="text-gray-400">Routed to</span>
-              <span className="font-medium text-gray-700">{routing.routed_to}</span>
-              <span className={`text-xs ${routing.status === 'success' ? 'text-green-600' : 'text-red-500'}`}>
+            <div className="flex items-center gap-3 bg-zinc-800 rounded-xl p-4 border border-zinc-700/60">
+              <span className="text-sm text-zinc-500">Routed to</span>
+              <span className="text-sm font-medium text-zinc-200">{routing.routed_to}</span>
+              <span className={`ml-auto text-xs px-2 py-0.5 rounded-full font-medium ${
+                routing.status === 'success'
+                  ? 'bg-emerald-500/15 text-emerald-400'
+                  : 'bg-red-500/15 text-red-400'
+              }`}>
                 {routing.status}
               </span>
             </div>
           )}
 
-          <div className="border-t border-gray-100 pt-5 space-y-3">
-            <p className="text-sm font-medium text-gray-700">Reclassify</p>
-            <select
-              className="w-full text-sm border border-gray-300 rounded px-3 py-2 bg-white"
-              value={newCategory}
-              onChange={e => setNewCategory(e.target.value)}
-            >
-              <option value="">Select category…</option>
-              {categories.map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
+          <div className="border-t border-zinc-800 pt-5 space-y-3">
+            <p className="text-sm font-semibold text-white">Reclassify</p>
+            <div className="relative">
+              <select
+                className="w-full appearance-none bg-zinc-800 text-white border border-zinc-700 rounded-xl px-4 py-2.5 pr-9 text-sm focus:outline-none focus:border-zinc-500 hover:border-zinc-500 transition-colors cursor-pointer"
+                value={newCategory}
+                onChange={e => setNewCategory(e.target.value)}
+              >
+                <option value="">Select category…</option>
+                {categories.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
             <button
               onClick={handleReclassify}
               disabled={!newCategory || saving}
-              className="w-full bg-gray-900 text-white text-sm rounded px-3 py-2 hover:bg-gray-700 disabled:opacity-40 transition-colors"
+              className="w-full bg-white text-zinc-900 text-sm font-semibold rounded-xl px-4 py-2.5 hover:bg-zinc-100 disabled:opacity-25 transition-colors"
             >
               {saving ? 'Saving…' : 'Apply Reclassification'}
             </button>
