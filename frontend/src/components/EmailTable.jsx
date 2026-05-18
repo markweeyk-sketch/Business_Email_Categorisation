@@ -9,30 +9,38 @@ const BADGE = {
   'Unclassified':       'bg-red-500/15 text-red-400 border border-red-500/20',
 }
 
+function PaginationControls({ page, totalPages, onPageChange }) {
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        onClick={() => onPageChange(p => Math.max(1, p - 1))}
+        disabled={page === 1}
+        className="text-sm px-2.5 py-1 rounded-lg bg-zinc-700 text-zinc-300 disabled:opacity-30 hover:bg-zinc-600 transition-colors"
+      >
+        ←
+      </button>
+      <span className="text-sm text-zinc-500 tabular-nums w-16 text-center">{page} / {totalPages}</span>
+      <button
+        onClick={() => onPageChange(p => Math.min(totalPages, p + 1))}
+        disabled={page >= totalPages}
+        className="text-sm px-2.5 py-1 rounded-lg bg-zinc-700 text-zinc-300 disabled:opacity-30 hover:bg-zinc-600 transition-colors"
+      >
+        →
+      </button>
+    </div>
+  )
+}
+
 export default function EmailTable({ emails, total, page, onPageChange, onSelect, loading }) {
   const totalPages = Math.ceil(total / PAGE_SIZE) || 1
+  const hasEmails = !loading && emails.length > 0
 
   return (
     <div>
+      {/* Top bar: count + pagination */}
       <div className="px-5 py-3.5 border-b border-zinc-700 flex items-center justify-between">
         <span className="text-sm text-zinc-500">{total.toLocaleString()} emails</span>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => onPageChange(p => Math.max(1, p - 1))}
-            disabled={page === 1}
-            className="text-sm px-2.5 py-1 rounded-lg bg-zinc-700 text-zinc-300 disabled:opacity-30 hover:bg-zinc-600 transition-colors"
-          >
-            ←
-          </button>
-          <span className="text-sm text-zinc-500 tabular-nums w-16 text-center">{page} / {totalPages}</span>
-          <button
-            onClick={() => onPageChange(p => Math.min(totalPages, p + 1))}
-            disabled={page >= totalPages}
-            className="text-sm px-2.5 py-1 rounded-lg bg-zinc-700 text-zinc-300 disabled:opacity-30 hover:bg-zinc-600 transition-colors"
-          >
-            →
-          </button>
-        </div>
+        <PaginationControls page={page} totalPages={totalPages} onPageChange={onPageChange} />
       </div>
 
       {loading ? (
@@ -85,6 +93,13 @@ export default function EmailTable({ emails, total, page, onPageChange, onSelect
             ))}
           </tbody>
         </table>
+      )}
+
+      {/* Bottom pagination */}
+      {hasEmails && (
+        <div className="px-5 py-3.5 border-t border-zinc-700 flex items-center justify-end">
+          <PaginationControls page={page} totalPages={totalPages} onPageChange={onPageChange} />
+        </div>
       )}
     </div>
   )

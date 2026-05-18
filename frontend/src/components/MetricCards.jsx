@@ -1,9 +1,4 @@
-function formatTime(minutes) {
-  if (!minutes) return '—'
-  return minutes >= 60 ? `${(minutes / 60).toFixed(1)}h` : `${Math.round(minutes)}m`
-}
-
-export default function MetricCards({ totalEmails, avgResponseTime, accuracyRate, pendingReview }) {
+export default function MetricCards({ totalEmails, rulesRate, accuracyRate, pendingReview }) {
   const cards = [
     {
       label: 'Total received',
@@ -12,9 +7,10 @@ export default function MetricCards({ totalEmails, avgResponseTime, accuracyRate
       valueColor: 'text-white',
     },
     {
-      label: 'Avg response time',
-      value: formatTime(avgResponseTime),
-      sub: null,
+      label: 'Via rules engine',
+      value: rulesRate != null ? `${rulesRate}%` : '—',
+      sub: 'no AI needed',
+      subColor: 'text-zinc-500',
       valueColor: 'text-white',
     },
     {

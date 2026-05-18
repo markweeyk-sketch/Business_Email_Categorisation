@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { fetchStats, fetchResponseTimes, fetchEmails, fetchEmail, reclassifyEmail, exportUrl } from './api'
+import { fetchStats, fetchEmails, fetchEmail, reclassifyEmail, exportUrl } from './api'
 import MetricCards from './components/MetricCards'
 import BarList from './components/BarList'
 import EmailTable from './components/EmailTable'
@@ -14,6 +14,12 @@ const CAT_COLORS = {
   'Others':             '#10b981',
   'No Action Required': '#71717a',
   'Unclassified':       '#ef4444',
+}
+
+const METHOD_COLORS = {
+  'rules':  '#10b981',
+  'ai':     '#3b82f6',
+  'manual': '#8b5cf6',
 }
 
 const DATE_OPTIONS = [
@@ -44,41 +50,42 @@ function FilterSelect({ value, onChange, options }) {
       >
         {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
-      <svg
-        className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none"
-        fill="none" viewBox="0 0 24 24" stroke="currentColor"
-      >
+      <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
       </svg>
     </div>
   )
 }
 
+function FilterChip({ children }) {
+  return (
+    <span className="text-xs bg-zinc-800 border border-zinc-700 text-zinc-300 px-2.5 py-1 rounded-full">
+      {children}
+    </span>
+  )
+}
+
 export default function App() {
-  const [stats, setStats]               = useState(null)
-  const [responseTimes, setResponseTimes] = useState([])
-  const [emails, setEmails]             = useState({ results: [], count: 0 })
+  const [stats, setStats]                 = useState(null)
+  const [emails, setEmails]               = useState({ results: [], count: 0 })
   const [selectedEmail, setSelectedEmail] = useState(null)
-  const [category, setCategory]         = useState('')
-  const [datePreset, setDatePreset]     = useState('all')
-  const [page, setPage]                 = useState(1)
-  const [loading, setLoading]           = useState(true)
+  const [category, setCategory]           = useState('')
+  const [datePreset, setDatePreset]       = useState('all')
+  const [page, setPage]                   = useState(1)
+  const [loading, setLoading]             = useState(true)
 
   const dateRange = useMemo(() => getDateRange(datePreset), [datePreset])
+  const filtersActive = category !== '' || datePreset !== 'all'
 
   const loadStats = useCallback(async () => {
-    try {
-      const [s, t] = await Promise.all([fetchStats(), fetchResponseTimes()])
-      setStats(s)
-      setResponseTimes(t)
-    } catch (e) { console.error(e) }
+    try { setStats(await fetchStats()) }
+    catch (e) { console.error(e) }
   }, [])
 
   const loadEmails = useCallback(async () => {
     setLoading(true)
-    try {
-      setEmails(await fetchEmails({ category, ...dateRange, page }))
-    } catch (e) { console.error(e) }
+    try { setEmails(await fetchEmails({ category, ...dateRange, page })) }
+    catch (e) { console.error(e) }
     finally { setLoading(false) }
   }, [category, dateRange, page])
 
@@ -96,9 +103,12 @@ export default function App() {
     await Promise.all([loadStats(), loadEmails()])
   }
 
-  const overallAvg = responseTimes.length
-    ? responseTimes.reduce((s, r) => s + r.avg_minutes, 0) / responseTimes.length
-    : null
+  const clearFilters = () => { setCategory(''); setDatePreset('all'); setPage(1) }
+
+  const catOptions = [
+    { label: 'All categories', value: '' },
+    ...CATEGORIES.map(c => ({ label: c, value: c })),
+  ]
 
   const categoryItems = (stats?.by_category ?? []).map(d => ({
     label:   d.category,
@@ -107,17 +117,14 @@ export default function App() {
     color:   CAT_COLORS[d.category] ?? '#71717a',
   }))
 
-  const responseTimeItems = responseTimes.map(r => ({
-    label:   r.category,
-    value:   r.avg_minutes,
-    display: r.avg_minutes >= 60 ? `${(r.avg_minutes / 60).toFixed(1)}h` : `${Math.round(r.avg_minutes)}m`,
-    color:   CAT_COLORS[r.category] ?? '#71717a',
+  const methodItems = (stats?.method_breakdown ?? []).map(d => ({
+    label:   d.label,
+    value:   d.count,
+    display: `${d.count} (${d.percentage}%)`,
+    color:   METHOD_COLORS[d.method] ?? '#71717a',
   }))
 
-  const catOptions = [
-    { label: 'All categories', value: '' },
-    ...CATEGORIES.map(c => ({ label: c, value: c })),
-  ]
+  const activeDateLabel = DATE_OPTIONS.find(o => o.value === datePreset)?.label ?? 'All time'
 
   return (
     <div className="min-h-screen bg-zinc-900 text-white">
@@ -128,16 +135,8 @@ export default function App() {
             <p className="text-sm text-zinc-500 mt-0.5">Business inbox · live view</p>
           </div>
           <div className="flex items-center gap-3 shrink-0">
-            <FilterSelect
-              value={datePreset}
-              onChange={v => { setDatePreset(v); setPage(1) }}
-              options={DATE_OPTIONS}
-            />
-            <FilterSelect
-              value={category}
-              onChange={v => { setCategory(v); setPage(1) }}
-              options={catOptions}
-            />
+            <FilterSelect value={datePreset} onChange={v => { setDatePreset(v); setPage(1) }} options={DATE_OPTIONS} />
+            <FilterSelect value={category}   onChange={v => { setCategory(v);   setPage(1) }} options={catOptions} />
             <a
               href={exportUrl({ category, ...dateRange })}
               download
@@ -153,7 +152,7 @@ export default function App() {
         {stats && (
           <MetricCards
             totalEmails={stats.total_emails}
-            avgResponseTime={overallAvg}
+            rulesRate={stats.rules_rate}
             accuracyRate={stats.accuracy_rate}
             pendingReview={stats.pending_review}
           />
@@ -161,7 +160,22 @@ export default function App() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           <BarList title="Category breakdown" items={categoryItems} />
-          <BarList title="Avg response time by category" items={responseTimeItems} />
+          <BarList title="Classification method" items={methodItems} />
+        </div>
+
+        {/* Active filter state */}
+        <div className="flex items-center gap-2 pt-1">
+          <span className="text-xs text-zinc-600">Showing</span>
+          <FilterChip>{activeDateLabel}</FilterChip>
+          <FilterChip>{category || 'All categories'}</FilterChip>
+          {filtersActive && (
+            <button
+              onClick={clearFilters}
+              className="text-xs text-zinc-600 hover:text-zinc-300 transition-colors ml-1 underline underline-offset-2"
+            >
+              Clear filters
+            </button>
+          )}
         </div>
 
         <div className="bg-zinc-800 rounded-2xl overflow-hidden border border-zinc-700/60">

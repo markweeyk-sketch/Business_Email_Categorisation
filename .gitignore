@@ -8,3 +8,5 @@ __pycache__/
 *.pyc
 *.pyo
 .DS_Store
+gmail_credentials.json
+gmail_token.json

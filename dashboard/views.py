@@ -64,11 +64,33 @@ class StatsView(APIView):
         )
         pending_review = Classification.objects.filter(is_active=True, requires_review=True).count()
 
+        METHOD_LABELS = {'rules': 'Rules engine', 'ai': 'AI (Claude)', 'manual': 'Manual'}
+        method_qs = list(
+            Classification.objects.filter(is_active=True)
+            .values('method')
+            .annotate(count=Count('id'))
+            .order_by('-count')
+        )
+        total_methods = sum(d['count'] for d in method_qs)
+        method_breakdown = [
+            {
+                'method': d['method'],
+                'label': METHOD_LABELS.get(d['method'], d['method']),
+                'count': d['count'],
+                'percentage': round(d['count'] / total_methods * 100, 1) if total_methods else 0,
+            }
+            for d in method_qs
+        ]
+        rules_count = next((d['count'] for d in method_qs if d['method'] == 'rules'), 0)
+        rules_rate = round(rules_count / total_methods * 100, 1) if total_methods else 0
+
         return Response({
             'total_emails': total,
             'by_category': by_category,
             'accuracy_rate': accuracy_rate,
             'pending_review': pending_review,
+            'method_breakdown': method_breakdown,
+            'rules_rate': rules_rate,
         })
 
 
