@@ -1,12 +1,11 @@
 venv/
 .env
+gmail_credentials.json
+gmail_token.json
 Credentials.json
 token.json
-*.json
 db.sqlite3
 __pycache__/
 *.pyc
 *.pyo
 .DS_Store
-gmail_credentials.json
-gmail_token.json
