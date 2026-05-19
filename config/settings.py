@@ -101,8 +101,8 @@ CLASSIFIER_CONFIDENCE_THRESHOLD = env.float('CLASSIFIER_CONFIDENCE_THRESHOLD', d
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:5173',
     'http://127.0.0.1:5173',
+    'https://business-email-categorisation.vercel.app',
 ]
-
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
