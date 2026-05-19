@@ -1,4 +1,5 @@
-const BASE = '/api/dashboard'
+const API_ORIGIN = import.meta.env.VITE_API_URL || ''
+const BASE = `${API_ORIGIN}/api/dashboard`
 
 export async function fetchStats() {
   const res = await fetch(`${BASE}/stats/`)
