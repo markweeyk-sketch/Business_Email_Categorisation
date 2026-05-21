@@ -6,7 +6,10 @@
       "Bash(Get-Content \"C:\\\\Users\\\\weeyk\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-weeyk-OneDrive-Projects-Business-Email-Categorisation\\\\77ff30d7-4977-4fda-94b9-4769c2a7cc46\\\\tasks\\\\bw0rez32t.output\" -Wait)",
       "Bash(Select-String --line-buffered \"QR|Metro|error|Error|warn|exp://\")",
       "Bash(Start-Sleep -Seconds 6)",
-      "Bash(Get-Content \"C:\\\\Users\\\\weeyk\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-weeyk-OneDrive-Projects-Business-Email-Categorisation\\\\77ff30d7-4977-4fda-94b9-4769c2a7cc46\\\\tasks\\\\bw0rez32t.output\" -Tail 40)"
+      "Bash(Get-Content \"C:\\\\Users\\\\weeyk\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-weeyk-OneDrive-Projects-Business-Email-Categorisation\\\\77ff30d7-4977-4fda-94b9-4769c2a7cc46\\\\tasks\\\\bw0rez32t.output\" -Tail 40)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git rm *)"
     ]
   }
 }

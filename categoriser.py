@@ -18,7 +18,6 @@ NO_ACTION_DOMAINS = [
     'hubspot.com', 'salesforce.com', 'noreply.com'
 ]
 
-# Keywords that signal each category
 CATEGORY_KEYWORDS = {
     'Tax': [
         'iras', 'gst', 'tax', 'invoice', 'payment due',
