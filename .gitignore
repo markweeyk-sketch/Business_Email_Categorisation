@@ -1,6 +1,7 @@
 venv/
 .env
 node_modules/
+frontend/dist/
 gmail_credentials.json
 gmail_token.json
 Credentials.json
