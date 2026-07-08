@@ -1,5 +1,7 @@
+import hmac
 import json
 import hashlib
+from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
@@ -13,6 +15,14 @@ from routing.service import RoutingService
 @csrf_exempt
 @require_POST
 def ingest_email(request):
+    # Shared-secret auth — this endpoint is not token-authenticated because
+    # it is called by the Gmail webhook, not by dashboard users.
+    secret = settings.GMAIL_WEBHOOK_SECRET
+    if secret:
+        provided = request.headers.get('X-Webhook-Secret', '')
+        if not hmac.compare_digest(provided, secret):
+            return JsonResponse({'error': 'Invalid webhook secret'}, status=401)
+
     try:
         data = json.loads(request.body)
 

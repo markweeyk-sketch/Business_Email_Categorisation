@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { fetchStats, fetchEmails, fetchEmail, reclassifyEmail, exportUrl } from './api'
+import { fetchStats, fetchEmails, fetchEmail, reclassifyEmail, downloadExport, getToken, clearToken } from './api'
 import MetricCards from './components/MetricCards'
 import BarList from './components/BarList'
 import EmailTable from './components/EmailTable'
 import EmailDetail from './components/EmailDetail'
+import Login from './components/Login'
 
 const CATEGORIES = ['IT Technical', 'Marketing', 'Tax', 'Others', 'No Action Required', 'Unclassified']
 
@@ -66,6 +67,7 @@ function FilterChip({ children }) {
 }
 
 export default function App() {
+  const [authed, setAuthed]               = useState(() => !!getToken())
   const [stats, setStats]                 = useState(null)
   const [emails, setEmails]               = useState({ results: [], count: 0 })
   const [selectedEmail, setSelectedEmail] = useState(null)
@@ -77,24 +79,35 @@ export default function App() {
   const dateRange = useMemo(() => getDateRange(datePreset), [datePreset])
   const filtersActive = category !== '' || datePreset !== 'all'
 
+  const handleError = useCallback((e) => {
+    if (e.unauthorized) setAuthed(false)
+    else console.error(e)
+  }, [])
+
   const loadStats = useCallback(async () => {
     try { setStats(await fetchStats()) }
-    catch (e) { console.error(e) }
-  }, [])
+    catch (e) { handleError(e) }
+  }, [handleError])
 
   const loadEmails = useCallback(async () => {
     setLoading(true)
     try { setEmails(await fetchEmails({ category, ...dateRange, page })) }
-    catch (e) { console.error(e) }
+    catch (e) { handleError(e) }
     finally { setLoading(false) }
-  }, [category, dateRange, page])
+  }, [category, dateRange, page, handleError])
 
-  useEffect(() => { loadStats() },  [loadStats])
-  useEffect(() => { loadEmails() }, [loadEmails])
+  useEffect(() => { if (authed) loadStats() },  [authed, loadStats])
+  useEffect(() => { if (authed) loadEmails() }, [authed, loadEmails])
+
+  const handleLogout = () => {
+    clearToken()
+    setAuthed(false)
+    setSelectedEmail(null)
+  }
 
   const handleSelectEmail = async (id) => {
     try { setSelectedEmail(await fetchEmail(id)) }
-    catch (e) { console.error(e) }
+    catch (e) { handleError(e) }
   }
 
   const handleReclassify = async (id, cat) => {
@@ -126,6 +139,8 @@ export default function App() {
 
   const activeDateLabel = DATE_OPTIONS.find(o => o.value === datePreset)?.label ?? 'All time'
 
+  if (!authed) return <Login onLogin={() => setAuthed(true)} />
+
   return (
     <div className="min-h-screen bg-zinc-900 text-white">
       <header className="border-b border-zinc-800 px-8 py-5">
@@ -137,13 +152,18 @@ export default function App() {
           <div className="flex items-center gap-3 shrink-0">
             <FilterSelect value={datePreset} onChange={v => { setDatePreset(v); setPage(1) }} options={DATE_OPTIONS} />
             <FilterSelect value={category}   onChange={v => { setCategory(v);   setPage(1) }} options={catOptions} />
-            <a
-              href={exportUrl({ category, ...dateRange })}
-              download
+            <button
+              onClick={() => downloadExport({ category, ...dateRange }).catch(handleError)}
               className="flex items-center gap-1.5 bg-zinc-800 text-white border border-zinc-700 rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-zinc-700 hover:border-zinc-500 transition-colors whitespace-nowrap"
             >
               Export CSV <span className="text-zinc-400 text-xs">↗</span>
-            </a>
+            </button>
+            <button
+              onClick={handleLogout}
+              className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors whitespace-nowrap"
+            >
+              Log out
+            </button>
           </div>
         </div>
       </header>

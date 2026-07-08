@@ -21,6 +21,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'corsheaders',
     'rest_framework',
+    'rest_framework.authtoken',
     'emails',
     'ingestion',
     'classifier',
@@ -106,7 +107,17 @@ CORS_ALLOWED_ORIGINS = [
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
 }
+
+# Gmail webhook: /api/ingestion/ingest/ is exempt from token auth (it's a
+# plain Django view) and is protected by this shared secret instead.
+GMAIL_WEBHOOK_SECRET = env('GMAIL_WEBHOOK_SECRET', default='')
 
 if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
