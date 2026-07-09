@@ -175,41 +175,48 @@ consumer-facing identity provider rather than internal Django users.
 6. ✅ frontend/src/components/Login.jsx — login screen; logout button in App.jsx
 7. ✅ /api/ingestion/ingest/ protected by X-Webhook-Secret header check
    (hmac.compare_digest against GMAIL_WEBHOOK_SECRET)
-8. ⬜ Expo app (not yet built) — same token flow, stored in expo-secure-store
+8. ✅ Expo app (mobile/) — same token flow, stored in expo-secure-store
 
-## Migration Plan: Expo Mobile App
+## Expo Mobile App — BUILT (July 2026)
 
-The system is being migrated to include an Expo React Native mobile app 
-so team members can review and reclassify emails on mobile devices.
+The Expo React Native app lives in `mobile/` (SDK 57, blank JS template,
+no navigation library). Team members can review and reclassify emails on
+mobile devices.
 
-### Goals
-- View dashboard metrics on mobile
-- Review unclassified emails
-- Reclassify emails with a single tap
-- Push notifications for new unclassified emails
-- Shared API with the existing Django backend
+### Structure
+```
+mobile/
+├── App.js                        # Auth gate: loads token, Login vs Dashboard
+├── app.json                      # expo-secure-store plugin, dark UI
+└── src/
+    ├── api.js                    # Same endpoints as frontend/src/api.js;
+    │                             #   token in expo-secure-store, mirrored
+    │                             #   in memory; base URL = Railway prod
+    ├── theme.js                  # Dark zinc palette + category colours
+    └── screens/
+        ├── LoginScreen.js        # POST /api/auth/login/
+        ├── DashboardScreen.js    # Stats, bar lists, filter chips
+        │                         #   (category + needs-review), FlatList
+        │                         #   with infinite scroll + pull-to-refresh
+        └── EmailDetailModal.js   # Bottom sheet, one-tap reclassify
+```
 
-### Prerequisite
-✅ Authentication (see section above) is implemented — the Expo app can
-now be built against the token-authenticated API.
+- Run locally: `cd mobile && npx expo start` (scan QR with Expo Go)
+- Verify bundle: `npx expo export --platform android`
+- Push notifications NOT built — needs backend changes (deferred)
 
-### Approach
-- Keep Django backend unchanged except for adding auth (above)
-- Keep React web dashboard unchanged except for adding token storage/header
-- Add new Expo app that consumes the same REST API endpoints
-- The existing /api/dashboard/* endpoints are already mobile-ready aside 
-  from auth
-- Railway (backend) and Vercel (web dashboard) are unaffected by this 
-  migration — Expo is a third client, not a replacement for either
+### Goals status
+- ✅ View dashboard metrics on mobile
+- ✅ Review unclassified emails (needs-review filter chip)
+- ✅ Reclassify emails with a single tap
+- ✅ Shared API with the existing Django backend (no backend changes made)
+- ⬜ Push notifications for new unclassified emails — requires backend
+  changes (expo-notifications + a device-token model + a send hook in the
+  classifier); deferred
 
-### Starting Point for Claude Code
-When working on the Expo migration:
-1. Read this file first
-2. Authentication is implemented (POST /api/auth/login/ returns a token)
-3. Read frontend/src/api.js to understand existing API calls
-4. Read dashboard/views.py to understand available endpoints
-5. Create the Expo app in a new folder: mobile/
-6. Reuse the same API endpoints — do not modify Django backend logic, 
-   only add auth as described above
-7. Store the auth token securely on device (expo-secure-store, not 
-   AsyncStorage)
+### Constraints (still apply when extending the app)
+- Do not modify Django backend logic for mobile features — Expo is a third
+  client alongside the React web dashboard; Railway and Vercel are unaffected
+- Auth token stays in expo-secure-store (never AsyncStorage)
+- Reuse the /api/dashboard/* endpoints; the web frontend's api.js is the
+  reference implementation
