@@ -179,9 +179,14 @@ consumer-facing identity provider rather than internal Django users.
 
 ## Expo Mobile App — BUILT (July 2026)
 
-The Expo React Native app lives in `mobile/` (SDK 57, blank JS template,
+The Expo React Native app lives in `mobile/` (SDK 54, blank JS template,
 no navigation library). Team members can review and reclassify emails on
 mobile devices.
+
+Pinned to SDK 54 because the store builds of Expo Go only support SDK 54
+(newer Expo Go versions are stuck in Apple review as of mid-2026) and the
+team tests via Expo Go on physical phones. Upgrade only when store Expo Go
+catches up or the team moves to development builds — see mobile/AGENTS.md.
 
 ### Structure
 ```
