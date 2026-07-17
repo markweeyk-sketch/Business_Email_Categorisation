@@ -23,4 +23,5 @@ urlpatterns = [
     path('api/auth/login/', obtain_auth_token, name='api_login'),
     path('api/ingestion/', include('ingestion.urls')),
     path('api/dashboard/', include('dashboard.urls')),
+    path('api/notifications/', include('notifications.urls')),
 ]

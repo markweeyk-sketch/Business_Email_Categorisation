@@ -36,6 +36,11 @@ Business_Email_Categorisation/
 │   └── service.py           # RoutingService — category → team inbox
 ├── dashboard/               # REST API for frontend
 │   └── views.py             # Stats, email list, detail, reclassify, export
+├── notifications/           # Expo push notifications
+│   ├── models.py            # PushDevice — Expo push tokens per user
+│   ├── views.py             # POST/DELETE /api/notifications/devices/
+│   └── service.py           # send_push via Expo push API; hook called
+│                            #   from ClassifierService on requires_review
 ├── frontend/                # React dashboard
 │   ├── src/
 │   │   ├── App.jsx          # Main layout, state, filter wiring
@@ -95,6 +100,8 @@ RoutingLog      # email (FK), classification (FK), routed_to, status,
 | PATCH | /api/dashboard/emails/<id>/reclassify/ | Manual reclassification |
 | GET | /api/dashboard/response-times/ | Avg response time per category |
 | GET | /api/dashboard/export/ | CSV download |
+| POST | /api/notifications/devices/ | Register an Expo push token (mobile app) |
+| DELETE | /api/notifications/devices/ | Deactivate an Expo push token (logout) |
 
 ## Environment Variables
 ```
@@ -197,6 +204,8 @@ mobile/
     ├── api.js                    # Same endpoints as frontend/src/api.js;
     │                             #   token in expo-secure-store, mirrored
     │                             #   in memory; base URL = Railway prod
+    ├── notifications.js          # Push registration (expo-notifications) +
+    │                             #   notification-tap → email detail
     ├── theme.js                  # Dark zinc palette + category colours
     └── screens/
         ├── LoginScreen.js        # POST /api/auth/login/
@@ -208,16 +217,22 @@ mobile/
 
 - Run locally: `cd mobile && npx expo start` (scan QR with Expo Go)
 - Verify bundle: `npx expo export --platform android`
-- Push notifications NOT built — needs backend changes (deferred)
+- Push notifications: built; needs one-time `eas init` (see Goals status)
 
 ### Goals status
 - ✅ View dashboard metrics on mobile
 - ✅ Review unclassified emails (needs-review filter chip)
 - ✅ Reclassify emails with a single tap
 - ✅ Shared API with the existing Django backend (no backend changes made)
-- ⬜ Push notifications for new unclassified emails — requires backend
-  changes (expo-notifications + a device-token model + a send hook in the
-  classifier); deferred
+- ✅ Push notifications for new emails needing review — notifications/
+  Django app (PushDevice model + device endpoint + Expo push API send,
+  hooked into ClassifierService when requires_review is set); mobile app
+  registers its token after login and opens the email on notification tap.
+  ONE-TIME SETUP still needed: run `eas init` in mobile/ to link an EAS
+  project — getExpoPushTokenAsync needs `extra.eas.projectId` in app.json,
+  and the app silently skips push registration until it exists.
+  Works in Expo Go on iOS; Android needs a development build (SDK 53+
+  removed remote push from Expo Go on Android).
 
 ### Constraints (still apply when extending the app)
 - Do not modify Django backend logic for mobile features — Expo is a third

@@ -3,6 +3,7 @@ import json
 import re
 from django.conf import settings
 from emails.models import Classification
+from notifications.service import notify_review_needed
 
 SYSTEM_PROMPT = """You are an email triage assistant for a business inbox.
 
@@ -205,7 +206,7 @@ class ClassifierService:
 
     def _save_classification(self, email, result):
         email.classifications.filter(is_active=True).update(is_active=False)
-        return Classification.objects.create(
+        classification = Classification.objects.create(
             email=email,
             category=result['category'],
             confidence=result['confidence'],
@@ -214,3 +215,6 @@ class ClassifierService:
             requires_review=result.get('requires_review', False),
             is_active=True
         )
+        if classification.requires_review:
+            notify_review_needed(email, classification)
+        return classification

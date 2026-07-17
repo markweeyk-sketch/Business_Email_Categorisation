@@ -78,6 +78,26 @@ export async function fetchEmail(id) {
   return res.json()
 }
 
+export async function registerDevice(pushToken) {
+  const res = await request(`${API_ORIGIN}/api/notifications/devices/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token: pushToken }),
+  })
+  if (!res.ok) throw new Error('Failed to register device')
+  return res.json()
+}
+
+export async function unregisterDevice(pushToken) {
+  const res = await request(`${API_ORIGIN}/api/notifications/devices/`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token: pushToken }),
+  })
+  if (!res.ok) throw new Error('Failed to unregister device')
+  return res.json()
+}
+
 export async function reclassifyEmail(id, category) {
   const res = await request(`${BASE}/emails/${id}/reclassify/`, {
     method: 'PATCH',

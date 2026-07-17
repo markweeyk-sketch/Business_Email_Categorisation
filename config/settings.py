@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     'classifier',
     'routing',
     'dashboard',
+    'notifications',
 ]
 
 MIDDLEWARE = [

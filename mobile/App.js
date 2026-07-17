@@ -3,6 +3,7 @@ import { View, ActivityIndicator, StyleSheet } from 'react-native'
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 import { StatusBar } from 'expo-status-bar'
 import { loadToken, clearToken, fetchEmail } from './src/api'
+import { registerForPush, unregisterPush, onNotificationTap } from './src/notifications'
 import LoginScreen from './src/screens/LoginScreen'
 import DashboardScreen from './src/screens/DashboardScreen'
 import EmailDetailModal from './src/screens/EmailDetailModal'
@@ -30,18 +31,27 @@ export default function App() {
     }
   }, [])
 
-  const handleLogout = async () => {
-    await clearToken()
-    setAuthed(false)
-    setSelectedEmail(null)
-  }
-
-  const handleSelectEmail = async (id) => {
+  const handleSelectEmail = useCallback(async (id) => {
     try {
       setSelectedEmail(await fetchEmail(id))
     } catch (err) {
       handleError(err)
     }
+  }, [handleError])
+
+  // Register this device for push notifications once signed in, and open
+  // the email detail sheet when a notification is tapped.
+  useEffect(() => {
+    if (!authed) return
+    registerForPush()
+    return onNotificationTap(handleSelectEmail)
+  }, [authed, handleSelectEmail])
+
+  const handleLogout = async () => {
+    await unregisterPush()
+    await clearToken()
+    setAuthed(false)
+    setSelectedEmail(null)
   }
 
   const handleReclassified = () => {
